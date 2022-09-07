@@ -53,3 +53,8 @@ mccca.data$classname.n.vec
 # each class index and class name corresponds to.
 mccca.data$classlab.mat
 }
+\references{
+Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+DOI: 10.1080/10618600.2022.2035737
+}

@@ -8,7 +8,7 @@ updateUG.MCCCA <- function(data.k=data.k,Ggrp=Ggrp,knownvec=knownvec,
                                      K.vec=K.vec,n.vec=n.vec,#data.vec=data.vec,
                                      total.init.k=total.init.k){#,Kes=Kes
 
-  if((any(knownvec)) & ((is.null(U0)))) print("(in update U formula) specify true class for known cluster.")
+  if((any(knownvec)) & ((is.null(U0)))) message("(in update U formula) specify true class for known cluster.")
   #is.null(cls.tr.list) |
   N <- nrow(data.k) ; K=sum(K.vec)
   ndata <- length(K.vec)
@@ -57,7 +57,8 @@ updateUG.MCCCA <- function(data.k=data.k,Ggrp=Ggrp,knownvec=knownvec,
         #kres <- kmeans(data.k.d,centers=Ggrp.d,nstart=total.init.k)
         kres <- try(kmeans(data.k.d,centers=Ggrp.d,nstart=total.init.k))#,
         # silent=TRUE)
-        if(class(kres)=="try-error"){
+        if(inherits(kres, "try-error")){
+        #if(class(kres)=="try-error"){
           #browser()
           #kres <- try(kmeans(data.k.d,centers=Ggrp.d,nstart=total.init.k))
           empty.cls <- TRUE

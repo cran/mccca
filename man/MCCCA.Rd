@@ -13,7 +13,7 @@ MCCCA(
   maxit = 50,
   p = 2,
   tol = 1e-10,
-  trace = 0,
+  verbose = TRUE,
   remove.miss = TRUE,
   kmeans.initial = TRUE
 )
@@ -35,7 +35,7 @@ MCCCA(
 
 \item{tol}{A numeric value indicating the absolute convergence tolerance.}
 
-\item{trace}{An non-negative integer. If positive, tracing information on the progress of the optimization is produced. Higher values produce more tracing information.}
+\item{verbose}{A logical value indicating. If \code{TRUE}, tracing information on the progress of the optimization is produced.}
 
 \item{remove.miss}{A logical value indicating whether categories nobody choose are removed nor not. The default is \code{TRUE}.}
 
@@ -117,6 +117,11 @@ N2=nrow(mccca.data$data.list[[2]])
 knowncluster.list[[2]]=rep(c(1,2),times=c(2,N2-2))
 known.vec=c(FALSE,TRUE,FALSE,FALSE,FALSE,FALSE)
 mccca.res=MCCCA(mccca.data,K.vec=K.vec,known.vec=known.vec,knowncluster.list = knowncluster.list)
+}
+\references{
+Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+DOI: 10.1080/10618600.2022.2035737
 }
 \seealso{
 \code{\link{create.MCCCAdata}}

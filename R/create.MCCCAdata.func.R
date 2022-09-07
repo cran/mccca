@@ -18,6 +18,9 @@
 #' \item{\code{classlab.mat}}{(Cx(H+1)) table, showing which combinations of categories of external variables each class index and class name corresponds to. The first H columns indicate the categories for each of the H external variables, and the last H+1th column indicates the corresponding class label (same as \code{classlabel}).}
 #' \item{\code{oriindex.list}}{A list of length C, where each list element corresponds to a row (observation) in data.list, indicating which row of observations (in \code{data.mat}) each observation (in \code{oriindex.list}) corresponds to.}
 #' @export
+#' @references Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+#' Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+#' DOI: 10.1080/10618600.2022.2035737
 #' @examples
 #' #setting
 #' N <- 100 ; J <- 5 ; Ktrue <- 2 ; q.vec <- rep(5,J) ; noise.prop <- 0.2

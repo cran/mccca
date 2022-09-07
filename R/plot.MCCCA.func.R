@@ -36,6 +36,9 @@
 #'
 #' -\code{txtsize.legend}:A numeric value which adjusts the textsize of the legend on the biplot. The default is 10.
 #' @export
+#' @references Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+#' Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+#' DOI: 10.1080/10618600.2022.2035737
 #' @examples
 #' #setting
 #' N <- 100 ; J <- 5 ; Ktrue <- 2 ; q.vec <- rep(5,J) ; noise.prop <- 0.2

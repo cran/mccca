@@ -1,7 +1,7 @@
 split.data.byext.comb <- function(dat,ext.mat=ext.mat,#extcate.label=NULL,
                               clstr0.vec=NULL){#,shortlab.ps=3){
 
-  printcheck <- TRUE
+  verbose <- TRUE
   #J <- ncol(dat)
   H <- ncol(ext.mat) # the number of external variable
   if(is.null(H)){
@@ -9,6 +9,7 @@ split.data.byext.comb <- function(dat,ext.mat=ext.mat,#extcate.label=NULL,
     H=1 #if H is NULL,it means ext.mat is not matrix but a vector with a length n,
     #so set the number of external vari as 1.
   }
+  #browser()
   J=ncol(dat) ; N=nrow(dat)
 
   ######ext.matをfactorのdata.frameにする####
@@ -93,10 +94,10 @@ split.data.byext.comb <- function(dat,ext.mat=ext.mat,#extcate.label=NULL,
     N.vec[cc] <- Nc <-sum(pickupsub)
 
     #if(printcheck) cat(cc,"th data, n=",sum(pickupsub),"\n")#print(paste("data",datalabel[ss]))
-    if(printcheck) cat(cc,"th class:","(",paste(as.matrix(comb),collapse=","),") data, n=",Nc,"\n")
+    if(verbose) cat(cc,"th class:","(",paste(as.matrix(comb),collapse=","),") data, n=",Nc,"\n")
     #as.matrix enables "comb" to be treated as character.
     if(Nc==0){
-      cat("the # of observation for (",paste(comb,collapse=","),") data is 0. So skip this class.\n")
+      message("the # of observation for (",paste(comb,collapse=","),") data is 0. So skip this class.\n")
       emptyclass[cc]=TRUE
       #clstr0.list[[cc]] <- clstr.list[[cc]]<-"(empty class)"
       Ktrue.vec[cc]=0

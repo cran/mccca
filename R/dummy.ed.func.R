@@ -2,37 +2,33 @@
 
 #' @importFrom stats model.matrix model.frame
 
-dummy.ed=function (x, data = NULL, sep = "", drop = TRUE, fun = as.integer,
-                   verbose = FALSE)
+dummy.ed=function (x, data = NULL, sep = "", drop = TRUE, fun = as.integer)
 {
   if (is.null(data)) {
     name <- as.character(sys.call(1))[2]
     name <- sub("^(.*\\$)", "", name)
     name <- sub("\\[.*\\]$", "", name)
-  }
-  else {
+  }else {
     if (length(x) > 1)
       stop("More than one variable provided to produce dummy variable.")
     name <- x
     x <- data[, name]
   }
-  if (drop == FALSE && class(x) == "factor") {
+  if(drop == FALSE && inherits(x, "factor")){
     x <- factor(x, levels = levels(x), exclude = NULL)
-  }
-  else {
+  }else{
     x <- factor(x, exclude = NULL)
   }
   if (length(levels(x)) < 2) {
-    if (verbose)
+    #if (verbose)
       warning(name, " has only 1 level. Producing dummy variable anyway.")
     return(matrix(rep(1, length(x)), ncol = 1, dimnames = list(rownames(x),
                                                                c(paste(name, sep, x[[1]], sep = "")))))
   }
   #browser()
-  mm <- model.matrix(~x - 1, model.frame(~x - 1), contrasts = FALSE)
+  mm <- model.matrix(~x - 1, model.frame(~x - 1))#, contrasts = FALSE)
+  #contrasts comment out (22/8/23)
   colnames.mm <- colnames(mm)
-  if (verbose)
-    cat(" ", name, ":", ncol(mm), "dummy varibles created\n")
   mm <- matrix(fun(mm), nrow = nrow(mm), ncol = ncol(mm), dimnames = list(NULL,
                                                                           colnames.mm))
   ###only category name

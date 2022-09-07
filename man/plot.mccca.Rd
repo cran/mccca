@@ -99,6 +99,11 @@ mccca.res=MCCCA(mccca.data,K.vec=K.vec)
 #plot MCCCA result
 plot(mccca.res)
 }
+\references{
+Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+DOI: 10.1080/10618600.2022.2035737
+}
 \seealso{
 \code{\link{MCCCA}}
 }

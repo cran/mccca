@@ -11,7 +11,7 @@
 #' @param remove.miss A logical value indicating whether categories nobody choose are removed nor not. The default is \code{TRUE}.
 #' @param maxit An integer indicating the maximum number of iterations.
 #' @param tol A numeric value indicating the absolute convergence tolerance.
-#' @param trace An non-negative integer. If positive, tracing information on the progress of the optimization is produced. Higher values produce more tracing information.
+#' @param verbose A logical value indicating. If \code{TRUE}, tracing information on the progress of the optimization is produced.
 #' @return Returns a list with the following elements.
 #' \item{\code{G}}{A (Kxp) quantification matrix for all clusters (K=\code{sum(K.vec)}).}
 #' \item{\code{Gg}}{Scaled \code{G}. See details.}
@@ -50,11 +50,12 @@
 #'
 #' -\code{known.vec}: A vector of logical values of length C. For example,
 #' if C=4 and you want to know the cluster assignment of only the second class, it should be \code{known.vec=c(FALSE,TRUE,FALSE,FALSE)}.
-#' @importFrom dummies dummy.data.frame
 #' @importFrom magic adiag
-#' @importFrom parallel parLapply mclapply makeCluster detectCores clusterExport stopCluster
 #' @importFrom stats kmeans
 #' @export
+#' @references Takagishi & Michel van de Velden (2022): Visualizing Class Specific
+#' Heterogeneous Tendencies in Categorical Data, Journal of Computational and Graphical Statistics,
+#' DOI: 10.1080/10618600.2022.2035737
 #' @examples
 #' #setting
 #' N <- 100 ; J <- 5 ; Ktrue <- 2 ; q.vec <- rep(5,J) ; noise.prop <- 0.2
@@ -93,13 +94,13 @@
 ## @references Takagishi, M. & Velden, M. van de (2022). Visualizing class specific heterogeneous tendencies in categorical data, to appear in Journal of Computational and Graphical Statistics.
 
 MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,nstart=3,maxit=50,p=2,tol=1e-10,
-                       trace=0,remove.miss=TRUE,kmeans.initial=TRUE){
+                       verbose=TRUE,remove.miss=TRUE,kmeans.initial=TRUE){
   if(is.null(known.vec)) known.vec=rep(FALSE,length(K.vec))
-  nstart.k=100 ; grpbase <- FALSE ; parallel=FALSE
+  nstart.k=100 ; grpbase <- FALSE
   paraname=c("B","cluster allocation & cluster center")
   updateorder=c(1,2)
 
-  cat("iteration: nstart=",nstart,", maxit=",maxit,"\n")
+  #cat("iteration: nstart=",nstart,", maxit=",maxit,"\n")
 
   if(!is.null(mccca.data)){
 
@@ -126,7 +127,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     }
     #check if knowncluster.list is appropriate
     for(kk in which(known.vec)){
-      cat("Cluster allocation is specified in the ",kk,"th class\n.")
+      message("Cluster allocation is specified in the ",kk,"th class.")
       if(N.vec[kk]!=1){
         if(all(knowncluster.list[[kk]]!=1)){
           stop(paste0("Specified cluster indecies in ",kk,"th vector in knowncluster.list should start from 1 in each class."))
@@ -147,7 +148,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     stop("inappropriate K.vec (some specified number of class-specific cluster is equal or larger than the number of observaton in that class)")
   }
   if(all(known.vec)){
-    cat("all known cluster\n")
+    message("all known cluster")
     paraname<-c("B & cluster center")
     updateorder<-1 ; maxit <- 1 ; nstart <- 1
   }
@@ -170,11 +171,12 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   catename.vec=dummy.res$category.vec
   rm(dummy.res)
 
+  #browser()
   ##make dummy.diag(block diag)
   dummy.list=rep(list(NA),J)
   for(j in 1:J){
-    #as.matrixしないとadiagでエラー出る
-    dummy.list[[j]]=as.matrix(dummy.data.frame(data.mat[,j,drop=FALSE],sep=":", dummy.classes = "ALL"))
+    #as.matrix is needed for adiag function
+    dummy.list[[j]]=as.matrix(dummy.data.frame.ed(data.mat[,j,drop=FALSE],sep=":", dummy.classes = "ALL")$df)
   }
   dummy.diag=do.call(args=dummy.list,what=adiag)
   rm(dummy.list)#to reduce memory
@@ -222,7 +224,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   #browser()
   if(grpbase){ #if its groupals base
     Jn.list <- rep(list(Jn),J)
-    Jn.diag=do.call(args=Jn.list,what=magic::adiag)
+    Jn.diag=do.call(args=Jn.list,what=adiag)
     #Jn.diag <- list2mat.func(data=Jn.list,outputform="diag")$data.diag
     DD <- t(dummy.diag)%*%Jn.diag%*%dummy.diag
   }else{
@@ -232,7 +234,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   eig.d.val <- (sqrt(abs(eig.d$values)))^(-1)
   #take abs to ignore numerical miscalculation (since symmetric should have positive eigen value.)
   #eig.d.val <- (sqrt(eig.d$values))^(-1)
-  if(trace>4) cat("    eig val of Ddiag.sq",eig.d.val[c(1:5)],"\n")#[c(1:5)]
+  #if(trace>4) cat("    eig val of Ddiag.sq",eig.d.val[c(1:5)],"\n")#[c(1:5)]
   Ddiag.sq <- (eig.d$vectors)%*%diag(eig.d.val)%*%t(eig.d$vectors)
   #all(Ddiag.sq==t(Ddiag.sq))
 
@@ -249,7 +251,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   #for(ti in 1:nstart){
   oneinit.func <- function(ti){
 
-    if(trace>1) cat("  ",ti,"th initial value\n")
+    #if(trace>1) cat("  ",ti,"th initial value\n")
 
     kmeans.initial.ti<-ifelse(ti==1,kmeans.initial,FALSE)
     known.vec.up<-known.vec
@@ -304,7 +306,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     ite<-1
     for(ite in 1:maxit){
 
-      if(trace>2) cat("  ite=",ite,"\n")
+      #if(trace>2) cat("  ite=",ite,"\n")
       #browser()
       paran<-updateorder[1]
       for(paran in updateorder){
@@ -313,18 +315,18 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
 
         if(paran==1){# B update
           ####update quantification of categories###
-          if(trace>3) cat(paste("update",paraname[paran]),"\n")
+          #if(trace>3) cat(paste("update",paraname[paran]),"\n")
           ite.cate<-ite+1
           U=Ugrp.para[[ite.u]]
 
           updateQcate.res<-updateQcate.MCCCA(dummy.mat=dummy.mat,Ddiag.sq=Ddiag.sq
                                                     ,Ugrp=U,m=J,lowdim=p,
                                                     #grpbase=grpbase,
-                                                    printcheck=trace,ncatevec=q.vec)
+                                                    printcheck=0,ncatevec=q.vec)
           lambda.vec<-updateQcate.res$lambda.vec
 
           if(is.complex(lambda.vec)){
-            cat("WARN:theres complex values.\n")
+            message("WARN:theres complex values.")
             B.para[[ite.cate]] <- B.para[[ite.cate-1]]
             break.ite <- TRUE
             #break
@@ -339,7 +341,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
 
         }else if(paran==2){# cluster allpcation
 
-          if(trace>3) cat(paste("update",paraname[paran]),"\n")
+          #if(trace>3) cat(paste("update",paraname[paran]),"\n")
 
           #####update cluster center#####
           ite.u<-ite+1
@@ -350,7 +352,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
                                        total.init.k=nstart.k,use.kmeans = kmeans.initial)
 
           if(updateCluster.res$empty.cls){
-            if(trace>1) cat("  theres an empty clusters.\n")
+            message("  theres an empty clusters.")
             Ugrp.para[[ite.u]]<-Ugrp.para[[ite.u-1]]
             #Ggrp.para[[ite.g]]<-Ggrp.para[[ite.u]]
           }else{
@@ -362,9 +364,9 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
 
         }
         #if(trace) cat(table(apply(Ugrp.diag,1,which.max)))
-        if(trace>3){
-          cat("  # of ind for each clusters\n") ; cat("  ",colSums(U),"\n")
-        }
+        #if(trace>3){
+        #  cat("  # of ind for each clusters\n") ; cat("  ",colSums(U),"\n")
+        #}
         if(any(colSums(U)==0)){
           #if(length(table(apply(Ugrp.diag,1,which.max)))<sum(K.vec)){
 
@@ -372,10 +374,10 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
           which0<-which(colSums(U)==0)
           known.vec.up[cluster.vec[which0]]<-TRUE
 
-          if(trace>0) {
-            cat("# of cluster has decreased\n")
-            if(all(known.vec.up))cat("all known.vec.up is TRUE!\n")
-          }
+          #if(trace>0) {
+            message("# of cluster has decreased")
+            if(all(known.vec.up))message("all known.vec.up is TRUE!")
+          #}
 
           #K.vec
           ###only for that data, previous res is used.
@@ -385,8 +387,8 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
             #Ugrp.para[[ite.u]][[ll.d]]<-Ugrp.para[[ite.u-1]][[ll.d]]
           }
           U=Ugrp.para[[ite.u]]
-          if(trace>3) cat("  colsum(U) is ",colSums(U),"\n") #check
-          if(trace>3) cat("  known.vec",known.vec.up,"\n")
+          #if(trace>3) cat("  colsum(U) is ",colSums(U),"\n") #check
+          #if(trace>3) cat("  known.vec",known.vec.up,"\n")
           # break.ite<-T
           # break
         }
@@ -394,14 +396,14 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
         para.list.now<-list(dummy.mat=dummy.mat,dummy.diag=dummy.diag,Qcate=B.para[[ite.cate]]
                             ,Ugrp=U,Ggrp=G.para[[ite.g]],ncatevec=q.vec,grpbase=grpbase)
 
-        obcheck.res<-objcheck.func(para.list=para.list.now,ite=ite,OB.vec=OB.vec,printcheck=trace
+        obcheck.res<-objcheck.func(para.list=para.list.now,ite=ite,OB.vec=OB.vec,printcheck=0
                                    ,paraname.p=paraname[paran],ite.ob=ite.ob,obcheck.start=1,e.cri=tol)
 
         OB.vec<-obcheck.res$OB.vec
 
         #down.para.vec[ite.ob]<-obcheck.res$down.para.save
         ite.ob<-obcheck.res$ite.ob
-        if(trace>0) cat("Start", formatC(ti, width = 5, digits = 0, mode = "integer"),
+        if(verbose) cat("Start", formatC(ti, width = 5, digits = 0, mode = "integer"),
                         "Iter", formatC(ite, width = 5, digits = 0, mode = "integer"),
                         "Loss", formatC(OB.vec[ite.ob-1], width = 10, digits = 8, format = "f"),
                         "Diff", formatC(ifelse((ite==1 & paran==updateorder[1]),0,OB.vec[1]-OB.vec[ite.ob-1])
@@ -417,7 +419,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
       }#####end paran######
 
       if(break.ite)  {
-        if(trace>1) cat("  stop it!!!\n")
+        #if(trace>1) cat("  stop it!!!\n")
         break
       }
 
@@ -425,7 +427,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     }###################end iteration#########################
 
     #if(trace>1) cat("  increased para:",paste(unique(down.para.vec),collapse="/"),"\n")
-    if(trace>0) cat("  ",ti,"th init, converged at",(ite),"th iteration.\n")
+    #if(trace>0) cat("  ",ti,"th init, converged at",(ite),"th iteration.\n")
 
     optval<-OB.vec[ite.ob-1]
 
@@ -470,34 +472,8 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
 
   }#######################end initial value func#########################
 
-  ## Apply algorithm over all starts, possibly in parallel
-  if(parallel){
-
-    if (.Platform$OS.type == "windows") {
-      cl <- makeCluster(detectCores())
-      clusterExport(cl, varlist=c("tot.list","oneinit.func",
-                                  "kmeans.initial","known.vec","maxit","C","K.vec","N.vec"#,"kmeansinit.ti"
-                                  ,"data.list","specify.init.list","allstep","trace","updateorder","nstart.k"
-                                  ,"objcheck.func","OBJfunc","verbose","adjustedRandIndex"
-                                  ,"p","dummy.mat","Ddiag.sq","J","q.vec","grpbase","Jn","clstr.list","cluster.vec",
-                                  "e.cri","catemat","classlabel","N","C","save.allite","calc.ARI","list2mat.func",
-                                  "updateQcate.MCCCA","updateUG.MCCCA",
-                                  "save.initvalues"
-                                  #"updateClusterCenter.MCCCA","updateCluster.MCCCA"
-                                  )
-                    ,envir=environment())#"calc.obj.func"
-
-      #parallel::
-      res.list <- parallel::parLapply(cl = cl, X = tot.list, fun = oneinit.func) #ed.m
-      stopCluster(cl)
-
-    } else {
-      res.list <- parallel::mclapply(X = tot.list, FUN = oneinit.func, mc.cores = detectCores(),
-                                mc.allow.recursive = FALSE)
-    }##end mac case
-  } else {
-    res.list <- lapply(X = tot.list, FUN = oneinit.func)
-  }
+  ## Apply algorithm over all starts
+  res.list <- lapply(X = tot.list, FUN = oneinit.func)
 
   ti <- 1
   for(ti in 1:nstart){

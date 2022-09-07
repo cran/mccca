@@ -17,14 +17,14 @@ objcheck.func <- function(para.list=para.list,ite=ite,OB.vec=OB.vec
 
     if( OB.vec[ite.ob]-OB.vec[ite.ob-1] > 0){#if(printcheck)
       # browser()
-      if(printcheck>1) cat("  obvalue is increased by",OB.vec[ite.ob]-OB.vec[ite.ob-1],"at",ite,"th ite,",paraname.p,"update.\n")
+      #if(printcheck>1) cat("  obvalue is increased by",OB.vec[ite.ob]-OB.vec[ite.ob-1],"at",ite,"th ite,",paraname.p,"update.\n")
       down.para.save<-paraname.p
     }else{
       down.para.save<-FALSE
     }
 
     if(abs(OB.vec[ite.ob]-OB.vec[ite.ob-1])<e.cri){
-      if(printcheck>2) cat(paste("  ",ite,"th ite converge at",paraname.p,"update.\n"))
+      #if(printcheck>2) cat(paste("  ",ite,"th ite converge at",paraname.p,"update.\n"))
       OB.vec[(ite.ob+1):length(OB.vec)]<-OB.vec[ite.ob]
       convergence<-TRUE
       #break
@@ -34,7 +34,7 @@ objcheck.func <- function(para.list=para.list,ite=ite,OB.vec=OB.vec
 
 
   }else{
-    if(printcheck>2) cat(("  skip checking\n"))
+    #if(printcheck>2) cat(("  skip checking\n"))
     down.para.save<-F
     convergence<-F
   }
@@ -69,11 +69,11 @@ list2mat.func<-function(data=data,inputform=c("list")#,ndata=ndata
   if("matrix" %in% outputform){
     if(whichsame=="row"){
       data.mat<-matrix(0,rowvec[1],col.all)
-      if(any(rowvec[1]!=rowvec))print("To combine matrix, all row needs to be the same.")
+      #if(any(rowvec[1]!=rowvec))print("To combine matrix, all row needs to be the same.")
 
     }else if(whichsame=="col"){
       data.mat<-matrix(0,row.all,colvec[1])
-      if(any(colvec[1]!=colvec)) print("To combine matrix, all column needs to be the same.")
+      #if(any(colvec[1]!=colvec)) print("To combine matrix, all column needs to be the same.")
     }}
 
 
@@ -135,7 +135,7 @@ create.color.func<-function(ncolor=ncolor,transpare=FALSE,printcheck=FALSE
       #browser()
       #cols2<-rainbow(ncolor-12)
       cols<-rep(c(cols1,cols2), ceiling(ncolor/20))[1:ncolor]
-      if(ncolor>20)print("ncolor is >20. so same color is repeated.")
+      #if(ncolor>20)print("ncolor is >20. so same color is repeated.")
     }
   }else{
     #cols<-heat.colors(ncolor)
@@ -144,7 +144,7 @@ create.color.func<-function(ncolor=ncolor,transpare=FALSE,printcheck=FALSE
     palet<-"defalut"
   }
 
-  if(printcheck) print(paste("use palette",palet))
+  #if(printcheck) print(paste("use palette",palet))
 
   colvec<-cols#[seq(1,ncolor)]#c(seq((Gtrue+1),(Gtrue+sum(Kdatavec[c(1:ndata.self)]))),rep(seq(1,Gtrue),ncate.ori))
   if(transpare) colvec<-sapply(cols,function(x){paste(x,degreeTra,sep="")})
