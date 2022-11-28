@@ -12,7 +12,7 @@ MCCCA(
   nstart = 3,
   maxit = 50,
   p = 2,
-  tol = 1e-10,
+  tol = 1e-08,
   verbose = TRUE,
   remove.miss = TRUE,
   kmeans.initial = TRUE

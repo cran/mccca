@@ -23,7 +23,7 @@
 #' @seealso \code{\link{MCCCA}}
 #' @importFrom ggplot2 waiver ggplot aes geom_text geom_point geom_segment scale_color_manual scale_size labs coord_equal xlim ylim guides guide_legend theme element_text theme_bw geom_vline geom_hline
 #' @importFrom stringr str_sub str_detect
-#' @importFrom grDevices palette dev.cur dev.off
+#' @importFrom grDevices palette dev.cur dev.off rainbow
 #' @importFrom graphics par
 #' @method plot mccca
 #' @details Parameters in \code{plot.setting} are as follows:
@@ -225,7 +225,8 @@ plot.mccca=function(x,main="MCCCA result",catelabel=NULL,classlabel=NULL,classla
   #########color######
   ###cluster is default, cate is package
   #if(is.null(col.cls))
-  col.cls<-palette()[c(1:C)]
+  #col.cls<-palette()[c(1:C)]
+  col.cls=rainbow(C)#22/9/5
   #browser()
   ##use.defaultcol is FALSE
   #if(is.null(col.pal)) {
@@ -235,6 +236,7 @@ plot.mccca=function(x,main="MCCCA result",catelabel=NULL,classlabel=NULL,classla
     }
     #col.pal <- rep(1,length(col.pal))
   #}
+    #browser()
 
   colvec <- c(col.cls,col.pal)
   CC.d$colvec <- colvec[CC.d$item]

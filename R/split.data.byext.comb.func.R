@@ -52,7 +52,7 @@ split.data.byext.comb <- function(dat,ext.mat=ext.mat,#extcate.label=NULL,
   #1-Hth col:combinations of external categories,
   #H+1th col:label name
   ##(文字のclass名使うときは省略verの列追加)
-  classlab.mat[,c(1:H)]=as.matrix(extcomb)#as.matrixしないとなんかlistになる
+  classlab.mat[,c(1:H)]=as.matrix(extcomb)#use "as.matrix" otherwise its gonna be a list
   classlab.mat[,(H+1)]=apply(extcomb,1,function(x){paste(x,collapse="&")})
   #short
   #classlab.mat[,(H+2)]=apply(extcomb,1,function(x){paste(stringr::str_sub(x,start=1,end=shortlab.ps),collapse="&")})
@@ -86,7 +86,8 @@ split.data.byext.comb <- function(dat,ext.mat=ext.mat,#extcate.label=NULL,
   cc <- emp<-1
   for(cc in 1:C){
 
-    comb <- as.vector(extcomb[cc,])
+    #comb <- as.vector(extcomb[cc,])
+    comb <- extcomb[cc,] #22/9/2
     as.character(extcomb[cc,])
 
     ###pick up sub having the "comb" combinations of ext vari.

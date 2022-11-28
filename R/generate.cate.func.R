@@ -16,7 +16,7 @@ generate.cate.list <- function(N=N, prop.list=prop.list){
   }
 
   if(any(lapply(prop.list,sum)!=1)){
-    warning("some prop is not appropriate. prop are",unlist(lapply(prop.list,sum)),".")
+    cat("some prop is not appropriate. prop are",unlist(lapply(prop.list,sum)),".\n")
   }
 
   J <- length(prop.list)

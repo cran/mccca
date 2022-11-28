@@ -4,11 +4,11 @@
 
 updateUG.MCCCA <- function(data.k=data.k,Ggrp=Ggrp,knownvec=knownvec,
                            class.n.vec=class.n.vec,cluster.vec=cluster.vec,
-                                     U0=NULL,use.kmeans=F,#cls.tr.list=NULL,
+                                     U0=NULL,use.kmeans=FALSE,#cls.tr.list=NULL,
                                      K.vec=K.vec,n.vec=n.vec,#data.vec=data.vec,
                                      total.init.k=total.init.k){#,Kes=Kes
 
-  if((any(knownvec)) & ((is.null(U0)))) message("(in update U formula) specify true class for known cluster.")
+  if((any(knownvec)) & ((is.null(U0)))) warning("(in update U formula) specify true class for known cluster.")
   #is.null(cls.tr.list) |
   N <- nrow(data.k) ; K=sum(K.vec)
   ndata <- length(K.vec)
@@ -70,9 +70,17 @@ updateUG.MCCCA <- function(data.k=data.k,Ggrp=Ggrp,knownvec=knownvec,
           #Ugrp.list[[cc]] <- 1.0 * outer(kres$cluster, 1:Kes, "==")
         }
       }else{ #if not using kmeans
+        
+        #browser()
+        dimm=nrow(data.k.d);dimm2=ncol(data.k.d)
+        dist.mat=matrix(NA,(nrow(data.k.d)+nrow(Ggrp.d)),dimm2)
+        dist.mat[c(1:dimm),]=data.k.d
+        dist.mat[-c(1:dimm),]=Ggrp.d
+        Distmat<-as.matrix(dist(dist.mat))
 
-        Distmat<-as.matrix(dist(rbind(data.k.d,Ggrp.d)))
-        #Distmat<-matrix(dist(rbind(data.kd,Ggrp.d)),c(n.d+Kes),c(n.d+Kes))
+        #Distmat2<-as.matrix(dist(rbind(data.k.d,Ggrp.d)))
+        #all(Distmat==Distmat2)
+        ##Distmat<-matrix(dist(rbind(data.kd,Ggrp.d)),c(n.d+Kes),c(n.d+Kes))
         clsvec<-apply(matrix(Distmat[c(1:n.d),c((n.d+1):(n.d+Kes))],n.d,Kes),1,which.min)
         #Ugrp.list[[cc]] <- 1.0 * outer(clsvec, 1:Kes, "==")#[cbind(seq(1,n.d),clsvec)]<-1
         Uc=1.0*outer(clsvec, 1:Kes, "==")

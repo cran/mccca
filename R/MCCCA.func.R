@@ -93,14 +93,15 @@
 
 ## @references Takagishi, M. & Velden, M. van de (2022). Visualizing class specific heterogeneous tendencies in categorical data, to appear in Journal of Computational and Graphical Statistics.
 
-MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,nstart=3,maxit=50,p=2,tol=1e-10,
+MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,nstart=3,maxit=50,p=2,tol=1e-8,
                        verbose=TRUE,remove.miss=TRUE,kmeans.initial=TRUE){
   if(is.null(known.vec)) known.vec=rep(FALSE,length(K.vec))
   nstart.k=100 ; grpbase <- FALSE
+
   paraname=c("B","cluster allocation & cluster center")
   updateorder=c(1,2)
 
-  #cat("iteration: nstart=",nstart,", maxit=",maxit,"\n")
+  #if(trace>1) message("iteration: nstart=",nstart,", maxit=",maxit,".")
 
   if(!is.null(mccca.data)){
 
@@ -141,11 +142,17 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     }##end check for any(known.vec)
 
   if(any(N.vec==1)){
-    K.vec[N.vec==1]==1 ; known.vec[N.vec==1]=TRUE
+    message("Some classes have only one subject, so the clusters of that class are set to be known")
+    K.vec[N.vec==1]=1 ; known.vec[N.vec==1]=TRUE
+    #print(K.vec)
   }
   #if any specified Kc (the number of the cth class-specific cluster) is equal to the number of observation in the cth class,
   if(any(sapply(c(1:C),function(x){K.vec[x]>=N.vec[x]}))){
-    stop("inappropriate K.vec (some specified number of class-specific cluster is equal or larger than the number of observaton in that class)")
+    ##check if its unknown cluster class
+    whcls=which(sapply(c(1:C),function(x){K.vec[x]>=N.vec[x]}))
+    if(any(!known.vec[whcls])){
+      stop("inappropriate K.vec (some specified number of class-specific cluster is equal or larger than the number of observaton in that class)")
+    }
   }
   if(all(known.vec)){
     message("all known cluster")
@@ -163,7 +170,8 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   cluster.vec<-rep(seq(1,C),times=K.vec)
   names(cluster.vec)=paste("cluster",c(1:K))
   if(is.null(classlabel))classlabel <- paste0(seq(1,C),"class")
-  Jn <- diag(N)-(1/N)*(rep(1,N)%*%t(rep(1,N)))
+  #Jn <- diag(N)-(1/N)*(rep(1,N)%*%t(rep(1,N)))
+  Jn=create_Jn(N)
 
   if(!is.data.frame(data.mat))data.mat=as.data.frame(data.mat)
   dummy.res=dummy.data.frame.ed(data.mat,sep=":", dummy.classes = "ALL")
@@ -222,20 +230,23 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   #####calculate Ddiag.sq (used for update B)#####
   #eig.d <- eigen(t(dummy.diag)%*%dummy.diag)
   #browser()
-  if(grpbase){ #if its groupals base
-    Jn.list <- rep(list(Jn),J)
-    Jn.diag=do.call(args=Jn.list,what=adiag)
-    #Jn.diag <- list2mat.func(data=Jn.list,outputform="diag")$data.diag
-    DD <- t(dummy.diag)%*%Jn.diag%*%dummy.diag
-  }else{
-    DD <- t(dummy.diag)%*%dummy.diag
-  }
-  eig.d <- eigen(DD)
-  eig.d.val <- (sqrt(abs(eig.d$values)))^(-1)
-  #take abs to ignore numerical miscalculation (since symmetric should have positive eigen value.)
-  #eig.d.val <- (sqrt(eig.d$values))^(-1)
-  #if(trace>4) cat("    eig val of Ddiag.sq",eig.d.val[c(1:5)],"\n")#[c(1:5)]
-  Ddiag.sq <- (eig.d$vectors)%*%diag(eig.d.val)%*%t(eig.d$vectors)
+  # if(grpbase){ #if its groupals base
+  #   Jn.list <- rep(list(Jn),J)
+  #   Jn.diag=do.call(args=Jn.list,what=adiag)
+  #   #Jn.diag <- list2mat.func(data=Jn.list,outputform="diag")$data.diag
+  #   DD <- t(dummy.diag)%*%Jn.diag%*%dummy.diag
+  # }else{
+  Ddiag.sq=calc_Ddiag_sq(dummy_diag = dummy.diag)
+
+  ###before Rcpp
+  # DD <- t(dummy.diag)%*%dummy.diag
+  # # }
+  # eig.d <- eigen(DD)
+  # eig.d.val <- (sqrt(abs(eig.d$values)))^(-1)
+  # #take abs to ignore numerical miscalculation (since symmetric should have positive eigen value.)
+  # #eig.d.val <- (sqrt(eig.d$values))^(-1)
+  # if(trace>4) cat("    eig val of Ddiag.sq",eig.d.val[c(1:5)],"\n")#[c(1:5)]
+  # Ddiag.sq <- (eig.d$vectors)%*%diag(eig.d.val)%*%t(eig.d$vectors)
   #all(Ddiag.sq==t(Ddiag.sq))
 
 
@@ -251,7 +262,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
   #for(ti in 1:nstart){
   oneinit.func <- function(ti){
 
-    #if(trace>1) cat("  ",ti,"th initial value\n")
+    #if(trace>1) message("  ",ti,"th initial value.")
 
     kmeans.initial.ti<-ifelse(ti==1,kmeans.initial,FALSE)
     known.vec.up<-known.vec
@@ -262,7 +273,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     #browser()
     ###initial
     #Ugrp1.list<-rep(list(NA),C)
-    U1=matrix(0,N,K)
+    U.new=matrix(0,N,K) #U1→U.new(22/9/12)
     cc<-1
     for(cc in 1:C){
       Kc<-K.vec[cc] ; Nc<-N.vec[cc]
@@ -276,7 +287,7 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
           #Uc=1*outer(clstr.vec[class.n.vec==cc], 1:Kc, "==")
           Uc=1*outer(knowncluster.list[[cc]], 1:Kc2, "==")
         }
-        U1[class.n.vec==cc,cluster.vec==cc]=Uc
+        U.new[class.n.vec==cc,cluster.vec==cc]=Uc
       }else{ #if its not known
 
         if(kmeans.initial.ti){
@@ -292,11 +303,12 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
           #cls.init<-sample(Kc,Nc,replace=TRUE)
         }
         Uc=1.0*outer(cls.init, 1:Kc, "==")
-        U1[class.n.vec==cc,cluster.vec==cc]=Uc
+        U.new[class.n.vec==cc,cluster.vec==cc]=Uc
       }###end k is unknown
     }#end all data
     ##make b-diag
-    Ugrp.para[[1]] <- U1
+    #Ugrp.para[[1]] <- U1 #com out(22/9/12)
+
     #browser()
     break.ite<-FALSE ; OB.vec<-rep(0,allstep)
 
@@ -305,8 +317,10 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     ite.cate<-1 ; ite.u<-1 ; ite.g<-1
     ite<-1
     for(ite in 1:maxit){
+      U.old=U.new
+      if(ite>1){B.old=B.new;G.old=G.new}
 
-      #if(trace>2) cat("  ite=",ite,"\n")
+      #if(trace>2) message("  ite=",ite,".")
       #browser()
       paran<-updateorder[1]
       for(paran in updateorder){
@@ -315,111 +329,166 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
 
         if(paran==1){# B update
           ####update quantification of categories###
-          #if(trace>3) cat(paste("update",paraname[paran]),"\n")
+          #if(trace>3) message(paste("update",paraname[paran]),".")
           ite.cate<-ite+1
-          U=Ugrp.para[[ite.u]]
+          #U=Ugrp.para[[ite.u]]
 
-          updateQcate.res<-updateQcate.MCCCA(dummy.mat=dummy.mat,Ddiag.sq=Ddiag.sq
-                                                    ,Ugrp=U,m=J,lowdim=p,
-                                                    #grpbase=grpbase,
-                                                    printcheck=0,ncatevec=q.vec)
-          lambda.vec<-updateQcate.res$lambda.vec
-
-          if(is.complex(lambda.vec)){
-            message("WARN:theres complex values.")
-            B.para[[ite.cate]] <- B.para[[ite.cate-1]]
-            break.ite <- TRUE
-            #break
-          }else{
-            B.para[[ite.cate]]<-updateQcate.res$Qcate.mat
-          }
+          # updateQcate.res<-updateQcate.MCCCA(dummy.mat=dummy.mat,Ddiag.sq=Ddiag.sq
+          #                                           ,Ugrp=U,m=J,lowdim=p,
+          #                                           #grpbase=grpbase,
+          #                                           printcheck=trace,ncatevec=q.vec)
+          # lambda.vec<-updateQcate.res$lambda.vec
+          #
+          # if(is.complex(lambda.vec)){
+          #   cat("WARN:theres complex values.\n")
+          #   B.para[[ite.cate]] <- B.para[[ite.cate-1]]
+          #   break.ite <- TRUE
+          #   #break
+          # }else{
+          #   B.para[[ite.cate]]<-updateQcate.res$Qcate.mat
+          # }
+          #browser()
+          B.new=updateB(dummy_mat=dummy.mat,Ddiag_sq=Ddiag.sq
+                  ,U=U.old,Jn=Jn,m=J,lowdim=p)
+          #all(round(BB,5)==round(B.para[[ite.cate]],5))#四捨五入しないと一致しない
 
           #####update cluster center#####
           ite.g<-ite+1
-          JZB <- Jn%*%dummy.mat%*%B.para[[ite.cate]]
-          G.para[[ite.g]] <- (1/J)*(solve(t(U)%*%U)%*%t(U)%*%JZB)
+          #JZB <- Jn%*%dummy.mat%*%B.para[[ite.cate]]
+          JZB=calc_JnDumB(Jn=Jn,dummy_mat = dummy.mat,B=B.new)
+          #G.para[[ite.g]] <- (1/J)*(solve(t(U.old)%*%U.old)%*%t(U.old)%*%JZB) #com out(22/9/12)
+          #G.new <- (1/J)*(solve(t(U.old)%*%U.old)%*%t(U.old)%*%JZB)
+          G.new=calc_updateG(U=U.old, X=JZB,J=J)
+          #browser()
 
         }else if(paran==2){# cluster allpcation
 
-          #if(trace>3) cat(paste("update",paraname[paran]),"\n")
+          #if(trace>3) message(paste("update",paraname[paran]),".")
 
           #####update cluster center#####
           ite.u<-ite+1
           updateCluster.res <- updateUG.MCCCA(data.k=((1/J)*(JZB)),
                                               class.n.vec=class.n.vec,cluster.vec=cluster.vec,
-                                       Ggrp=G.para[[ite.g]],knownvec=known.vec.up,
-                                       U0=Ugrp.para[[ite.u-1]],K.vec=K.vec,n.vec=N.vec,
+                                              Ggrp=G.new,knownvec=known.vec.up,
+                                       #Ggrp=G.para[[ite.g]],knownvec=known.vec.up,
+                                       U0=U.old,K.vec=K.vec,n.vec=N.vec,
+                                       #U0=Ugrp.para[[ite.u-1]],K.vec=K.vec,n.vec=N.vec,
                                        total.init.k=nstart.k,use.kmeans = kmeans.initial)
 
           if(updateCluster.res$empty.cls){
             message("  theres an empty clusters.")
-            Ugrp.para[[ite.u]]<-Ugrp.para[[ite.u-1]]
+            U.new=U.old
+            #Ugrp.para[[ite.u]]<-Ugrp.para[[ite.u-1]] #com out(22/9/12)
             #Ggrp.para[[ite.g]]<-Ggrp.para[[ite.u]]
           }else{
-            G.para[[ite.g]]<-updateCluster.res$Ggrp
-            Ugrp.para[[ite.u]]<-updateCluster.res$Ugrp
+            #G.para[[ite.g]]<-updateCluster.res$Ggrp #com out(22/9/12)
+            #Ugrp.para[[ite.u]]<-updateCluster.res$Ugrp
+            G.new<-updateCluster.res$Ggrp
+            U.new=updateCluster.res$Ugrp
           }
 
-          U=Ugrp.para[[ite.u]]
+          #U=Ugrp.para[[ite.u]]
 
-        }
+        }##end cluster allocation
+
         #if(trace) cat(table(apply(Ugrp.diag,1,which.max)))
         #if(trace>3){
-        #  cat("  # of ind for each clusters\n") ; cat("  ",colSums(U),"\n")
+        #  message("  # of ind for each clusters.") ; cat("  ",colSums(U),"\n")
         #}
-        if(any(colSums(U)==0)){
+        if(any(colSums(U.new)==0)){
           #if(length(table(apply(Ugrp.diag,1,which.max)))<sum(K.vec)){
 
           #the data which yields 0 cluster is set to fix
-          which0<-which(colSums(U)==0)
+          which0<-which(colSums(U.new)==0)
           known.vec.up[cluster.vec[which0]]<-TRUE
 
           #if(trace>0) {
-            message("# of cluster has decreased")
-            if(all(known.vec.up))message("all known.vec.up is TRUE!")
+            message("# of cluster has decreased.")
+            if(all(known.vec.up))message("all known.vec is TRUE!")
           #}
 
           #K.vec
           ###only for that data, previous res is used.
           for(ll in 1:length(which0)){
             ll.d<-cluster.vec[which0[ll]]
-            Ugrp.para[[ite.u]][,cluster.vec==which0[ll]]=Ugrp.para[[ite.u-1]][,cluster.vec==which0[ll]]
+            #Ugrp.para[[ite.u]][,cluster.vec==which0[ll]]=Ugrp.para[[ite.u-1]][,cluster.vec==which0[ll]] #com out(22/9/12)
+            U.new[,cluster.vec==which0[ll]]=U.old[,cluster.vec==which0[ll]]
             #Ugrp.para[[ite.u]][[ll.d]]<-Ugrp.para[[ite.u-1]][[ll.d]]
           }
-          U=Ugrp.para[[ite.u]]
+          #U=Ugrp.para[[ite.u]] #com out(22/9/12)
+          #U.new=U.new
           #if(trace>3) cat("  colsum(U) is ",colSums(U),"\n") #check
           #if(trace>3) cat("  known.vec",known.vec.up,"\n")
           # break.ite<-T
           # break
         }
 
-        para.list.now<-list(dummy.mat=dummy.mat,dummy.diag=dummy.diag,Qcate=B.para[[ite.cate]]
-                            ,Ugrp=U,Ggrp=G.para[[ite.g]],ncatevec=q.vec,grpbase=grpbase)
-
-        obcheck.res<-objcheck.func(para.list=para.list.now,ite=ite,OB.vec=OB.vec,printcheck=0
-                                   ,paraname.p=paraname[paran],ite.ob=ite.ob,obcheck.start=1,e.cri=tol)
-
-        OB.vec<-obcheck.res$OB.vec
-
-        #down.para.vec[ite.ob]<-obcheck.res$down.para.save
-        ite.ob<-obcheck.res$ite.ob
-        if(verbose) cat("Start", formatC(ti, width = 5, digits = 0, mode = "integer"),
-                        "Iter", formatC(ite, width = 5, digits = 0, mode = "integer"),
-                        "Loss", formatC(OB.vec[ite.ob-1], width = 10, digits = 8, format = "f"),
-                        "Diff", formatC(ifelse((ite==1 & paran==updateorder[1]),0,OB.vec[1]-OB.vec[ite.ob-1])
-                                        , width = 10, digits = 12, format = "f"),
-                        "\n")#only first cat, Dif is 0, otherwise print obval0-obval.
-
-
-        if(obcheck.res$convergence){
-          break.ite<-TRUE
-          break
-        }
-
       }#####end paran######
 
+      ite.ob=ite
+
+      ####calculate obj only after updating UG #com out(22/9/12)
+      #if(trace>4) cat("calculate obj function\n")
+      #OB.vec[ite.ob]<-obj(dummy_mat=dummy.mat,dummy_diag=dummy.diag,
+      #                    U=U,G=G.para[[ite.g]], B=B.para[[ite.cate]], Jn=Jn)
+
+      #ite.ob<-ite.ob+1
+      #browser()
+      #com out(22/9/12)
+      # if(verbose) cat("Start", formatC(ti, width = 5, digits = 0, mode = "integer"),
+      #                 "Iter", formatC(ite, width = 5, digits = 0, mode = "integer"),
+      #                 "Loss", formatC(OB.vec[ite.ob], width = 10, digits = 8, format = "f"),
+      #                 "Diff", formatC(ifelse(ite==1,0,OB.vec[ite.ob]-OB.vec[ite.ob-1])
+      #                 #"Diff", formatC(ifelse((ite==1 & paran==updateorder[1]),0,OB.vec[ite.ob]-OB.vec[ite.ob-1])
+      #                                 #"Diff", formatC(ifelse((ite==1 & paran==updateorder[1]),0,OB.vec[1]-OB.vec[ite.ob-1])
+      #                                 , width = 10, digits = 12, format = "f"),
+      #                 "\n")
+
+      if(verbose) cat("Start", formatC(ti, width = 3, digits = 0, mode = "integer"),
+                      "Iteration", formatC(ite, width = 3, digits = 0, mode = "integer"),
+                      "\n")
+
+      if(ite.ob>1){
+
+        #if(abs(OB.vec[ite.ob]-OB.vec[ite.ob-1])<tol){ #com out(22/9/12)
+        if(sum(abs(B.new-B.old))<tol){
+          #browser()
+          #if(trace>2) cat(paste("  ",ite,"th ite converge at",paraname[paran],"update.\n"))
+          #OB.vec[(ite.ob+1):length(OB.vec)]<-OB.vec[ite.ob]
+          #convergence<-TRUE
+          #break
+          ####calculate obj only after iteration converged
+          #if(trace>4) cat("calculate obj function\n")
+          optval <- obj(dummy_mat=dummy.mat,dummy_diag=dummy.diag,
+                              U=U.new,G=G.new, B=B.new, Jn=Jn)
+
+          break.ite<-TRUE
+          break
+        }#else{
+        # convergence<-FALSE
+        #
+      }
+
+      #ite.ob<-ite.ob+1
+
+      ###old####
+      # para.list.now<-list(dummy.mat=dummy.mat,dummy.diag=dummy.diag,Qcate=B.para[[ite.cate]]
+      #                     ,Ugrp=U,Ggrp=G.para[[ite.g]],ncatevec=q.vec,grpbase=grpbase)
+      # obcheck.res<-objcheck.func(para.list=para.list.now,ite=ite,OB.vec=OB.vec,printcheck=trace
+      #                            ,paraname.p=paraname[paran],ite.ob=ite.ob,obcheck.start=1,e.cri=tol)
+      # OB.vec<-obcheck.res$OB.vec
+
+      #down.para.vec[ite.ob]<-obcheck.res$down.para.save
+      #ite.ob<-obcheck.res$ite.ob
+      #only first cat, Dif is 0, otherwise print obval0-obval.
+
+      # if(obcheck.res$convergence){
+      #   break.ite<-TRUE
+      #   break
+      # }
+
       if(break.ite)  {
-        #if(trace>1) cat("  stop it!!!\n")
+        #if(trace>2) cat("  stop it!!!\n")
         break
       }
 
@@ -429,21 +498,23 @@ MCCCA <- function(mccca.data,K.vec=K.vec,known.vec=NULL,knowncluster.list=NULL,n
     #if(trace>1) cat("  increased para:",paste(unique(down.para.vec),collapse="/"),"\n")
     #if(trace>0) cat("  ",ti,"th init, converged at",(ite),"th iteration.\n")
 
-    optval<-OB.vec[ite.ob-1]
+    #optval<-OB.vec[ite.ob-1] #com out(22/9/12)
 
     #############################name of row etc#########################
-    Bp<-B.para[[ite.cate]]
+    #Bp<-B.para[[ite.cate]] #com out(22/9/12)
+    Bp=B.new
     rownames(Bp)<-catename.vari.vec#stringr::str_sub(catevec,start=4)#,end=shortlab.ps)
     #catevec#rep(0,nrow(Bp))
 
     ##create U and G and Q
-    Ugrp.p<-Ugrp.para[[ite.u]]
-    Gp<-G.para[[ite.g]]
+    #Ugrp.p<-Ugrp.para[[ite.u]] ; Gp<-G.para[[ite.g]] #com out(22/9/12)
+    Ugrp.p=U.new ; Gp=G.new
 
     rownames(Gp)<-rep(classlabel,times=K.vec)
 
     objscale<-1/J
-    Qp<-objscale*(Jn%*%dummy.mat%*%Bp)
+    #Qp<-objscale*(Jn%*%dummy.mat%*%Bp)
+    Qp<-objscale*calc_JnDumB(Jn=Jn,dummy_mat = dummy.mat,B=Bp)
     rownames(Qp)<-rownames(Ugrp.p)<-rownames(dummy.mat)#paste0("obj",c(1:N))#rep("",N)
 
     clses.list<-rep(list(NA),C) ; clses.vec<-rep(NA,N)
