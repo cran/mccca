@@ -1,4 +1,4 @@
-0f9f910e3e703d59d9b8e31fedd75de4 *DESCRIPTION
+053e05aaa1591b2074f756dc11eabd77 *DESCRIPTION
 c4bcbd1db49723f23ed2a28f58c35388 *NAMESPACE
 afd5b8cea2ba0ba82319071a3490832e *R/MCCCA.func.R
 242546ba512860dee2cd805c412ceead *R/RcppExports.R
@@ -23,9 +23,8 @@ d66eb65239c8091b7c2facc8c4047aea *man/generate.cate.list.Rd
 531de5f004758f02c1b7ac006882ad99 *man/generate.catecls.Rd
 ab107bd960012e3c1dafaa01e9f66dab *man/generate.ext.Rd
 a32cd486b4da185d5bdedaf95e4e5257 *man/generate.onedata.Rd
-776ac4c39fec50d80f7a0803d983e1e6 *man/mccca-package.Rd
 61c1a21eb1733edfe19a6c34206aebb6 *man/plot.mccca.Rd
-cb0424b2cf45b769ff18f18098cb4efe *src/Makevars
+bdeafc0fe941a3da343e678842d2ed02 *src/Makevars
 dafdf8a329bff2f0330e1678850722ca *src/Makevars.win
 22b7d389d476ce901bafcba2068d59f5 *src/RcppExports.cpp
 efae2c48b820a4aee62efa7cf7f89dd1 *src/calc_Ddiagsq.cpp
